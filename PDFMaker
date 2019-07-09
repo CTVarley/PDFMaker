@@ -7,51 +7,38 @@ function onOpen(){
 }
 
 function week() {
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  SpreadsheetApp.setActiveSheet(spreadsheet.getSheets()[2]);
-  SpreadsheetApp.getActiveSheet().getRange('E2').setValue('Monday');
-  //function that saves sheets we want as pdfs
-  SpreadsheetApp.getActiveSheet().getRange('E2').setValue('Tuesday');
-  //function that saves sheets we want as pdfs
-  SpreadsheetApp.getActiveSheet().getRange('E2').setValue('Wednesday');
-  //function that saves sheets we want as pdfs
-  SpreadsheetApp.getActiveSheet().getRange('E2').setValue('Thursday');
-  //function that saves sheets we want as pdfs
-  SpreadsheetApp.getActiveSheet().getRange('E2').setValue('Friday');
-  //function that saves sheets we want as pdfs
   
+  days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+
+  for (var i = 0; i < 5; i++) {
+  
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
+    
+    SpreadsheetApp.getActiveSheet().getRange('E2').setValue(days[i]);
+    Browser.msgBox(days[i]);
+    //function that saves sheets we want as pdfs
+  }
   //function that saves a version of the whole file still in sheet form
-  
-  
-}
-
-
-
+  }
 
 function generatePdf() {
   
+  sheetsToConvert = ["School_Delivery","COLD_Delivery","Prep"]
   
-  //does it three times but for the same sheet
   for (var i = 0; i < 3; i++) {
   
-    SpreadsheetApp.flush();
-
+    SpreadsheetApp.flush();    
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    //gets spreadsheet #3 in document, maybe change to being able to get it by name
-    SpreadsheetApp.setActiveSheet(ss.getSheets()[2]);
-    //SpreadsheetApp.setActiveSheet(sheet)
-    
+    SpreadsheetApp.setActiveSheet(ss.getSheetByName(sheetsToConvert[i]));
     var sheet = ss.getActiveSheet();
-  
     
-    //Date set with format in EST (NYC) used in subject and PDF name
-    
+    //Date set with format in EST (NYC) used in subject and PDF name 
     var date = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
     var url = ss.getUrl();
     
     var folderID = "1ERxEQ1U1yZnD7YXNTNgML0qzWMJYvlEo"; // Folder id to save in a folder.
     var folder = DriveApp.getFolderById(folderID);
-    
     
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
@@ -59,44 +46,25 @@ function generatePdf() {
     //additional parameters for exporting the sheet as a pdf
     var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
       //below parameters are optional...
-      // '&size=letter' + //paper size
+      '&size=letter' + //paper size
       '&portrait=false' + //orientation, false for landscape
       '&fitw=true' + //fit to width, false for actual size
-      '&sheetnames=false&printtitle=false&pagenumbers=false' + //hide optional headers and footers
+      '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
       '&gridlines=false' + //hide gridlines
       '&fzr=false' + //do not repeat row headers (frozen rows) on each page
       '&gid=' + sheet.getSheetId(); //the sheet's Id
     
     var token = ScriptApp.getOAuthToken();
     
-    var response = UrlFetchApp.fetch(url + url_ext, {
-                                     headers: {
-                                     'Authorization': 'Bearer ' + token
-                                     }
-                                     });
+    var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
     
     var blob = response.getBlob().setName(ss.getName() + " " + date + '.pdf');
     
-    //var theBlob = destSpreadsheet.getBlob().getAs('application/pdf').setName(pdfName);
     var newFile = folder.createFile(blob);
-    
-
-
   }
-   
-   
-   
+  
 }   
    
-   
-   
-   
-   
-   
-
 function popup () {
   Browser.msgBox("we're going to make a pdf");
 }
-
-
-
