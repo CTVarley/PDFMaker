@@ -16,11 +16,18 @@ function week() {
     SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
     
     SpreadsheetApp.getActiveSheet().getRange('E2').setValue(days[i]);
-    Browser.msgBox(days[i]);
-    //function that saves sheets we want as pdfs
+    generatePdf();
+    Browser.msgBox("Pausing for 15 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
+    
+    Utilities.sleep(15000)
+    Browser.msgBox(days[i+1] + "is next")
   }
-  //function that saves a version of the whole file still in sheet form
-  }
+
+    //function that saves a version of the whole file still in sheet form
+    Browser.msgBox("all done, you can find your files in the target folder")
+
+
+}
 
 function generatePdf() {
   
