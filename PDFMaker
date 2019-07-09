@@ -32,13 +32,19 @@ function generatePdf() {
   
   
   //does it three times but for the same sheet
+  
+  sheetsToConvert = ["School_Delivery","COLD_Delivery","Prep"]
+  
   for (var i = 0; i < 3; i++) {
   
     SpreadsheetApp.flush();
-
+    //var targetSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetsToConvert[i]);
+    
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     //gets spreadsheet #3 in document, maybe change to being able to get it by name
-    SpreadsheetApp.setActiveSheet(ss.getSheets()[2]);
+    SpreadsheetApp.setActiveSheet(ss.getSheetByName(sheetsToConvert[i]));
+    
+    //SpreadsheetApp.setActiveSheet(ss.getSheets()[2]);
     //SpreadsheetApp.setActiveSheet(sheet)
     
     var sheet = ss.getActiveSheet();
