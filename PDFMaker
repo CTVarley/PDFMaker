@@ -1,9 +1,7 @@
 function onOpen(){
  var ui = SpreadsheetApp.getUi();
- ui.createMenu('PDF MAKER')
-  .addItem('change day', 'week')
-  .addItem('pdf maker','generatePdf')
- .addItem('fileNaming', 'fileNaming')
+ ui.createMenu('PDF Maker')
+  .addItem('Generate PDFs for Week','week')
  .addToUi();
 }
 
