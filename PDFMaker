@@ -40,6 +40,8 @@ function day(day) {
   generatePdf(targetDate);  
 }
 
+
+
 function week() {
   
   options = {muteHttpExceptions: true};
@@ -64,7 +66,6 @@ function week() {
 
     //function that saves a version of the whole file still in sheet form
     Browser.msgBox("all done, you can find your files in the target folder")
-
 
 }
 
