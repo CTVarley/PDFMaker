@@ -59,7 +59,7 @@ function generatePdf() {
       //below parameters are optional...
       '&size=letter' + //paper size
       '&portrait=false' + //orientation, false for landscape
-      '&fitw=false' + //fit to width, false for actual size
+      '&fitw=true' + //fit to width, false for actual size
       '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
       '&gridlines=false' + //hide gridlines
       '&fzr=false' + //do not repeat row headers (frozen rows) on each page
