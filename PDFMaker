@@ -1,36 +1,41 @@
+// CAN DO NEXT:
+  // GET THE DATE OF MONDAY IN A PLACE WHERE IT MAKES SENSE
+  // MOMENT.JS?
+  // IMPLEMENT BUILDING A FOLDER STRUCTURE IN A PLACE THAT MAKES SENSE
+
 function onOpen(){
  var ui = SpreadsheetApp.getUi();
  ui.createMenu('PDF Maker')
-  .addItem('Generate PDFs for Week','week')
-  .addItem('Single Day', 'day')
+  .addItem('Generate PDFs for Week','publishWeek')
+  .addItem('Single Day', 'publishDay')
  .addSeparator()
       .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
           .addItem('Monday', 'Monday')
           .addItem('Tuesday', 'Tuesday')
           .addItem('Wednesday', 'Wednesday')
-          .addItem('Thursday', 'Thurday')
+          .addItem('Thursday', 'Thursday')
           .addItem('Friday', 'Friday'))
  .addToUi();
 }
 
 function Monday(){
-  day("Monday");
+  publishDay("Monday");
 }
 function Tuesday(){
-  day("Tuesday");
+  publishDay("Tuesday");
 }
 function Wednesday(){
-  day("Wednesday");
+  publishDay("Wednesday");
 }
 function Thursday(){
-  day("Thursday");
+  publishDay("Thursday");
 }
 function Friday(){
-  day("Friday");
+  publishDay("Friday");
 }
   
 
-function day(day) {  
+function publishDay(day) {  
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
   var sheetWithDate = SpreadsheetApp.getActiveSheet();
@@ -40,9 +45,7 @@ function day(day) {
   generatePdf(targetDate);  
 }
 
-
-
-function week() {
+function publishWeek() {
   
   options = {muteHttpExceptions: true};
   
@@ -67,6 +70,7 @@ function week() {
     //function that saves a version of the whole file still in sheet form
     Browser.msgBox("all done, you can find your files in the target folder")
 
+
 }
 
 function generatePdf(targetDate) {
@@ -82,7 +86,7 @@ function generatePdf(targetDate) {
     var sheetName = sheet.getName();
     
     //Date set with format in EST (NYC) used in subject and PDF name 
-    var date = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
+    var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
     var url = ss.getUrl();
     
     var folderID = "1vnSexVhPkCqJWhi3worsjHF2o28qBWkA"; // Folder id to save in a folder.
@@ -152,3 +156,48 @@ function nameFile(targetDate, sheetName) {
   // Refactor this
 }
 
+function nameWeeklyFolder(mondayDate) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("LunchMenu"));
+  var sheetWithWeek = SpreadsheetApp.getActiveSheet();
+  var cycleWeek = 'w' + sheetWithWeek.getRange('E1').getValue();
+  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
+}
+
+function createSubFolder(parentFolderID, childFolderName) {
+  var folder = DriveApp.getFolderById(parentFolderID);
+  var newFolder = folder.createFolder(childFolderName);
+  return newFolder;
+}
+
+function createFolderStructure(){
+  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id
+  var WEEK_FOLDER_NAME = "EXAMPLE WEEKLY FOLDERS: 2019 05 27 - w1"; // Call function to name Folder for whole week
+  var weekFolder = createSubFolder(PARENT_FOLDER_ID, WEEK_FOLDER_NAME);  
+  
+  var ordersFolders = weekFolder.getFoldersByName("Orders");
+  if(ordersFolders.hasNext()){
+    var ordersFolder = ordersFolders.next()
+  } else {
+    var ordersFolder = weekFolder.createFolder("Orders")
+    }
+    var prepSheetsFolders = weekFolder.getFoldersByName("Prep Sheets");
+  if(prepSheetsFolders.hasNext()){
+    var prepSheets = prepSheets.next()
+  } else {
+    var prepSheets = weekFolder.createFolder("Prep Sheets")
+    }
+    var propelDeliveryFolders = weekFolder.getFoldersByName("Propel Delivery");
+  if(propelDeliveryFolders.hasNext()){
+    var propelDelivery = propelDelivery.next()
+  } else {
+    var propelDelivery = weekFolder.createFolder("Propel Delivery")
+    }
+   var uaecsDeliveryFolders = weekFolder.getFoldersByName("UAECS Delivery");
+  if(uaecsDeliveryFolders.hasNext()){
+    var uaecsDelivery = uaecsDelivery.next()
+  } else {
+    var uaecsDelivery = weekFolder.createFolder("UAECS Delivery") 
+  
+  }
+}

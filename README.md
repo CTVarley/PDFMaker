@@ -10,3 +10,4 @@ Thanks for using this PDF Maker!
 
 Requirements:
   - Cell E2
+  - LunchMenu cell E1
