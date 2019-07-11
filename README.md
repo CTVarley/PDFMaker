@@ -7,3 +7,6 @@ To add this script to your Google Sheet:
 This should add a new menu item to your sheet, called PDF Maker. The first time you run it, it will raise a security warning. You will have to click on "advanced" to allow all permissions.
 
 Thanks for using this PDF Maker!
+
+Requirements:
+  - Cell E2

@@ -1,12 +1,48 @@
 function onOpen(){
  var ui = SpreadsheetApp.getUi();
- ui.createMenu('PDF MAKER')
-  .addItem('change day', 'week')
-  .addItem('pdf maker','generatePdf')
-  .addToUi();
+ ui.createMenu('PDF Maker')
+  .addItem('Generate PDFs for Week','week')
+  .addItem('Single Day', 'day')
+ .addSeparator()
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
+          .addItem('Monday', 'Monday')
+          .addItem('Tuesday', 'Tuesday')
+          .addItem('Wednesday', 'Wednesday')
+          .addItem('Thursday', 'Thurday')
+          .addItem('Friday', 'Friday'))
+ .addToUi();
+}
+
+function Monday(){
+  day("Monday");
+}
+function Tuesday(){
+  day("Tuesday");
+}
+function Wednesday(){
+  day("Wednesday");
+}
+function Thursday(){
+  day("Thursday");
+}
+function Friday(){
+  day("Friday");
+}
+  
+
+function day(day) {  
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
+  var sheetWithDate = SpreadsheetApp.getActiveSheet();
+  sheetWithDate.getRange('E2').setValue(day);
+  var targetDate = sheetWithDate.getRange("E3").getValue();
+  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
+  generatePdf(targetDate);  
 }
 
 function week() {
+  
+  options = {muteHttpExceptions: true};
   
   days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
 
@@ -15,12 +51,15 @@ function week() {
     var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
     
-    SpreadsheetApp.getActiveSheet().getRange('E2').setValue(days[i]);
-    generatePdf();
-    Browser.msgBox("Pausing for 15 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
+    var sheetWithDate = SpreadsheetApp.getActiveSheet();
+    sheetWithDate.getRange('E2').setValue(days[i]);
+    var targetDate = sheetWithDate.getRange("E3").getValue();
+    targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
     
-    Utilities.sleep(15000)
-    Browser.msgBox(days[i+1] + "is next")
+    generatePdf(targetDate);
+    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
+    
+    Utilities.sleep(17000)
   }
 
     //function that saves a version of the whole file still in sheet form
@@ -29,7 +68,7 @@ function week() {
 
 }
 
-function generatePdf() {
+function generatePdf(targetDate) {
   
   sheetsToConvert = ["School_Delivery","COLD_Delivery","Prep"]
   
@@ -39,12 +78,13 @@ function generatePdf() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     SpreadsheetApp.setActiveSheet(ss.getSheetByName(sheetsToConvert[i]));
     var sheet = ss.getActiveSheet();
+    var sheetName = sheet.getName();
     
     //Date set with format in EST (NYC) used in subject and PDF name 
     var date = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
     var url = ss.getUrl();
     
-    var folderID = "1ERxEQ1U1yZnD7YXNTNgML0qzWMJYvlEo"; // Folder id to save in a folder.
+    var folderID = "1vnSexVhPkCqJWhi3worsjHF2o28qBWkA"; // Folder id to save in a folder.
     var folder = DriveApp.getFolderById(folderID);
     
     //remove the trailing 'edit' from the url
@@ -65,13 +105,49 @@ function generatePdf() {
     
     var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
     
-    var blob = response.getBlob().setName(ss.getName() + " " + date + '.pdf');
+    var blob = response.getBlob().setName(nameFile(targetDate, sheetName));
     
     var newFile = folder.createFile(blob);
   }
   
+  
+  
 }   
    
-function popup () {
+function popup() {
   Browser.msgBox("we're going to make a pdf");
 }
+
+function findBreakRows() {
+  sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("School_Delivery");
+  value = "Signature:";
+  
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+  
+  var rowsBeforeBreaks = [];
+  
+  for (var i = 0; i < values.length; i++) {
+    for (var j = 0; j < values[i].length; j++) {     
+      if (values[i][j] == value) {
+        rowsBeforeBreaks.push((i+3)); //the +3 gets us the row two after the search term.  this works for the pages with signature, may need to be adjusted for others
+      }
+    }    
+  }
+  Logger.log("Rows that could be expanded to account for page breaks:  " + rowsBeforeBreaks)
+  return rowsBeforeBreaks;
+}
+
+function nameFile(targetDate, sheetName) {
+  var fileName = targetDate + "_" + sheetName + ".pdf";  
+  Logger.log(fileName);
+  return fileName;
+  
+  // CAN DO: 
+    // This has to make fewer request in hope of not either
+      // - Going over time, or
+      // - Making too many requests
+  // Pass arguments around instead of selecting active sheet?
+  // Refactor this
+}
+
