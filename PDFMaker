@@ -2,9 +2,7 @@ function onOpen(){
  var ui = SpreadsheetApp.getUi();
  ui.createMenu('PDF Maker')
   .addItem('Generate PDFs for Week','week')
-  .addItem('Single Day', 'day')
- .addSeparator()
-      .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
+  .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
           .addItem('Monday', 'Monday')
           .addItem('Tuesday', 'Tuesday')
           .addItem('Wednesday', 'Wednesday')
