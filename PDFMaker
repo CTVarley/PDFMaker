@@ -62,9 +62,11 @@ function publishWeek() {
     targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
     
     generatePdf(targetDate);
-    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
     
-    Utilities.sleep(17000)
+    if (i != 4) {
+      Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)");
+      Utilities.sleep(17000)
+    }
   }
 
     //function that saves a version of the whole file still in sheet form
