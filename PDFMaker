@@ -3,8 +3,11 @@ function onOpen(){
  ui.createMenu('PDF MAKER')
   .addItem('change day', 'week')
   .addItem('pdf maker','generatePdf')
-  .addToUi();
+ .addItem('fileNaming', 'fileNaming')
+ .addToUi();
 }
+
+
 
 function week() {
   
@@ -20,14 +23,15 @@ function week() {
     Browser.msgBox("Pausing for 15 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
     
     Utilities.sleep(15000)
-    Browser.msgBox(days[i+1] + "is next")
-  }
+    if (i < 4){
+      Browser.msgBox( days[i] + " converted.  " + days[i+1] + " is next")
+    }}
 
     //function that saves a version of the whole file still in sheet form
     Browser.msgBox("all done, you can find your files in the target folder")
 
-
 }
+
 
 function generatePdf() {
   
@@ -55,7 +59,7 @@ function generatePdf() {
       //below parameters are optional...
       '&size=letter' + //paper size
       '&portrait=false' + //orientation, false for landscape
-      '&fitw=true' + //fit to width, false for actual size
+      '&fitw=false' + //fit to width, false for actual size
       '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
       '&gridlines=false' + //hide gridlines
       '&fzr=false' + //do not repeat row headers (frozen rows) on each page
@@ -72,6 +76,29 @@ function generatePdf() {
   
 }   
    
-function popup () {
-  Browser.msgBox("we're going to make a pdf");
-}
+function fileNaming() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getActiveSheet()
+  var thisSheet = sheet.getName();
+  
+  var sheetWithDate = ss.getSheetByName("School_Delivery");
+  var dateRange = sheetWithDate.getRange(row, column)
+  
+  var date = Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
+  
+  
+  var sheetdate = 
+  
+  
+ // var filename = (date + "_" + sheetname);
+  
+//  Browser.msgBox(name);
+  
+  {
+   // return name;
+  
+  }}
+
+
+
+
