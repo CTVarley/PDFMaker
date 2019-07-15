@@ -1,20 +1,23 @@
-// CAN DO NEXT:
-  // GET THE DATE OF MONDAY IN A PLACE WHERE IT MAKES SENSE
-  // MOMENT.JS?
-  // IMPLEMENT BUILDING A FOLDER STRUCTURE IN A PLACE THAT MAKES SENSE
+// CAN DO: 
+// When exporting PDF for a single day, delete original file first (and/or amend filename)
+// Refactor redundant code
+// Change constants to be globally scoped at top of file for ease of configuration
+//  This has to make fewer request in hope of not either
+//  - Going over time, or
+//  - Making too many requests
 
 function onOpen(){
- var ui = SpreadsheetApp.getUi();
- ui.createMenu('PDF Maker')
-  .addItem('Generate PDFs for Week','publishWeek')
-  .addItem('Single Day', 'publishDay')
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('PDF Maker')
+ .addItem('Generate PDFs for Week','publishWeek')
+ .addItem('Single Day', 'publishDay')
  .addSeparator()
-      .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
-          .addItem('Monday', 'Monday')
-          .addItem('Tuesday', 'Tuesday')
-          .addItem('Wednesday', 'Wednesday')
-          .addItem('Thursday', 'Thursday')
-          .addItem('Friday', 'Friday'))
+ .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
+                  .addItem('Monday', 'Monday')
+                  .addItem('Tuesday', 'Tuesday')
+                  .addItem('Wednesday', 'Wednesday')
+                  .addItem('Thursday', 'Thursday')
+                  .addItem('Friday', 'Friday'))
  .addToUi();
 }
 
@@ -33,59 +36,65 @@ function Thursday(){
 function Friday(){
   publishDay("Friday");
 }
-  
 
 function publishDay(day) {  
+  // TODO: function out redundancies between publishDay and publishWeek  
+  
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
   var sheetWithDate = SpreadsheetApp.getActiveSheet();
   sheetWithDate.getRange('E2').setValue(day);
   var targetDate = sheetWithDate.getRange("E3").getValue();
-  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
-  generatePdf(targetDate);  
+  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");  
+  sheetWithDate.getRange('E2').setValue('Monday');
+  var mondayDate = sheetWithDate.getRange('E3').getValue();
+  mondayDate = Utilities.formatDate(mondayDate, 'GMT', 'yyyy-MM-dd-EEEE');
+  var foldersIds = findTargetFolders(day, mondayDate, sheetWithDate);
+  Logger.log('Made it this far!');
+  Logger.log(foldersIds);
+  generatePdf(targetDate, foldersIds);
 }
 
-function publishWeek() {
-  
-  options = {muteHttpExceptions: false};
-  
-  days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+// finding target folder IDs for exporting one day at a time
+function findTargetFolders(weekday, mondayDate, sheetWithDate) {
+  var cellWithCycleWeek = 'E4';
+  var strCycleWeek = String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
+  return createFolderStructure(mondayDate, strCycleWeek);
+}
 
-  for (var i = 0; i < days.length; i++) {
-  
+function publishWeek() {  
+  options = {muteHttpExceptions: false};  
+  days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+  for (var i = 0; i < days.length; i++) {    
     var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
-    
+    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));    
     var sheetWithDate = SpreadsheetApp.getActiveSheet();
     sheetWithDate.getRange('E2').setValue(days[i]);
     var targetDate = sheetWithDate.getRange("E3").getValue();
     targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
     if (days[i] == "Monday") {
-      //get the number week in the cycle
       var cellWithCycleWeek = 'E4';
-      var strCycleWeek =String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
+      var strCycleWeek = String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
       // There might be a more elegant way to pass this ID back so that it's clear this function is being called for its side effects:
       var foldersIds = createFolderStructure(targetDate, strCycleWeek); 
     }
     
-    generatePdf(targetDate, foldersIds); // put stuff in here to save each file to its relevant folder
-    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
+    generatePdf(targetDate, foldersIds);
     
-    Utilities.sleep(17000)
+    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.");
+    Utilities.sleep(17000);
   }
-
-    //function that saves a version of the whole file still in sheet form
-    Browser.msgBox("all done, you can find your files in the target folder")
-
-
+  
+  // TODO: function that saves a version of the whole file still in sheet form
+  Browser.msgBox("All done! You can find your files in the target folders.");    
 }
 
 function generatePdf(targetDate, foldersIds) {
   
-  sheetsToConvert = ["School_Delivery","COLD_Delivery","Prep"]
+  sheetsToConvert = ["School_Delivery", "COLD_Delivery", "Prep"]
   
-  for (var i = 0; i < 3; i++) {
-  
+  for (var i = 0; i < sheetsToConvert.length; i++) {
+    
     SpreadsheetApp.flush();    
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     SpreadsheetApp.setActiveSheet(ss.getSheetByName(sheetsToConvert[i]));
@@ -94,25 +103,25 @@ function generatePdf(targetDate, foldersIds) {
     
     //Date set with format in EST (NYC) used in subject and PDF name 
     var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
+    Logger.log(currentDate);
     var url = ss.getUrl();
     
-    var weekFolderID = foldersIds[4]; // This currently determines what folder it will be saved in. The source of this is the "createFolderStructure" function.
-    // Use sheetsToConvert[i] to determine what folder to save it in
+    var weekFolderID = foldersIds[4]; // The source of this is the "createFolderStructure" function.
     var folder = DriveApp.getFolderById(foldersIds[i]);
     
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
     
-    //additional parameters for exporting the sheet as a pdf
+    //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
     var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
-      //below parameters are optional...
-      '&size=letter' + //paper size
+    //below parameters are optional...
+    '&size=letter' + //paper size
       '&portrait=false' + //orientation, false for landscape
-      '&fitw=true' + //fit to width, false for actual size
-      '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
-      '&gridlines=false' + //hide gridlines
-      '&fzr=false' + //do not repeat row headers (frozen rows) on each page
-      '&gid=' + sheet.getSheetId(); //the sheet's Id
+        '&fitw=true' + //fit to width, false for actual size
+        '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
+        '&gridlines=false' + //hide gridlines
+        '&fzr=false' + //do not repeat row headers (frozen rows) on each page
+        '&gid=' + sheet.getSheetId(); //the sheet's Id
     
     var token = ScriptApp.getOAuthToken();
     
@@ -122,14 +131,8 @@ function generatePdf(targetDate, foldersIds) {
     
     var newFile = folder.createFile(blob);
   }
-  
-  
-  
-}   
-   
-function popup() {
-  Browser.msgBox("we're going to make a pdf");
 }
+
 
 function findBreakRows() {
   sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("School_Delivery");
@@ -143,7 +146,7 @@ function findBreakRows() {
   for (var i = 0; i < values.length; i++) {
     for (var j = 0; j < values[i].length; j++) {     
       if (values[i][j] == value) {
-        rowsBeforeBreaks.push((i+3)); //the +3 gets us the row two after the search term.  this works for the pages with signature, may need to be adjusted for others
+        rowsBeforeBreaks.push((i+3)); // The +3 gets us the row two after the search term.  This works for the pages with signature, may need to be adjusted for others.
       }
     }    
   }
@@ -153,23 +156,8 @@ function findBreakRows() {
 
 function nameFile(targetDate, sheetName) {
   var fileName = targetDate + "_" + sheetName + ".pdf";  
-  Logger.log(fileName);
-  return fileName;
-  
-  // CAN DO: 
-    // This has to make fewer request in hope of not either
-      // - Going over time, or
-      // - Making too many requests
-  // Pass arguments around instead of selecting active sheet?
-  // Refactor this
-}
-
-function nameWeeklyFolder(mondayDate) {
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("LunchMenu"));
-  var sheetWithWeek = SpreadsheetApp.getActiveSheet();
-  var cycleWeek = 'w' + sheetWithWeek.getRange('E1').getValue();
-  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
+  Logger.log('Exporting ' + fileName + '...');
+  return fileName;  
 }
 
 function getCycleWeekNum(strCycleWeek) {
@@ -182,19 +170,20 @@ function getCycleWeekNum(strCycleWeek) {
   }
 }
 
-// Unnecessary?
+// Could be reused in loop for subfolders?
 function createSubFolder(parentFolderID, childFolderName) {
-  var folder = DriveApp.getFolderById(parentFolderID);
-  var newFolder = folder.createFolder(childFolderName);
+  var parentFolder = DriveApp.getFolderById(parentFolderID);
+  var newFolder = parentFolder.getFoldersByName(childFolderName);
+  newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);
   return newFolder;
 }
 
 function createFolderStructure(mondayDate, cycleWeek){
+  // change to DriveApp.getRootFolder()?
   var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
-  // change to DriveApp.getRootFolder();
   cycleWeek = getCycleWeekNum(cycleWeek);
-  var WEEK_FOLDER_NAME = mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
-  var weekFolder = createSubFolder(PARENT_FOLDER_ID, WEEK_FOLDER_NAME);  
+  var weekFolderName = mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
+  var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  
   // Would like to change this array to something more coherent but for now this is a "get it to green" type implementation until we determine what constants can be global configuration.
   var foldersIds = [];
   foldersIds[4] = weekFolder.getId();
@@ -206,32 +195,6 @@ function createFolderStructure(mondayDate, cycleWeek){
     newFolder = newFolder.hasNext() ? newFolder.next() : weekFolder.createFolder(newFolderName);
     foldersIds[i] = newFolder.getId();
   }
-  
-//  var ordersFolders = weekFolder.getFoldersByName("Orders");
-//  if(ordersFolders.hasNext()){
-//    var ordersFolder = ordersFolders.next()
-//  } else {
-//    var ordersFolder = weekFolder.createFolder("Orders")
-//    }
-//    var prepSheetsFolders = weekFolder.getFoldersByName("Prep Sheets");
-//  if(prepSheetsFolders.hasNext()){
-//    var prepSheets = prepSheets.next()
-//  } else {
-//    var prepSheets = weekFolder.createFolder("Prep Sheets")
-//    }
-//    var propelDeliveryFolders = weekFolder.getFoldersByName("Propel Delivery");
-//  if(propelDeliveryFolders.hasNext()){
-//    var propelDelivery = propelDelivery.next()
-//  } else {
-//    var propelDelivery = weekFolder.createFolder("Propel Delivery")
-//    }
-//   var uaecsDeliveryFolders = weekFolder.getFoldersByName("UAECS Delivery");
-//  if(uaecsDeliveryFolders.hasNext()){
-//    var uaecsDelivery = uaecsDelivery.next()
-//  } else {
-//    var uaecsDelivery = weekFolder.createFolder("UAECS Delivery") 
-//  
-//  }
   
   return foldersIds;
 }
