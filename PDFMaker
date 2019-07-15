@@ -47,11 +47,11 @@ function publishDay(day) {
 
 function publishWeek() {
   
-  options = {muteHttpExceptions: true};
+  options = {muteHttpExceptions: false};
   
   days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
 
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < days.length; i++) {
   
     var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
@@ -60,13 +60,19 @@ function publishWeek() {
     sheetWithDate.getRange('E2').setValue(days[i]);
     var targetDate = sheetWithDate.getRange("E3").getValue();
     targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
-    
-    generatePdf(targetDate);
-    
-    if (i != 4) {
-      Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)");
-      Utilities.sleep(17000)
+    if (days[i] == "Monday") {
+      //get the number week in the cycle
+      var cellWithCycleWeek = 'E4';
+      var strCycleWeek =String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
+      Logger.log(strCycleWeek);
+      // create a folderName with targetDate 
+      createFolderStructure(targetDate, strCycleWeek);
     }
+    
+    generatePdf(targetDate); // put stuff in here to save each file to its relevant folder
+    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
+    
+    Utilities.sleep(17000)
   }
 
     //function that saves a version of the whole file still in sheet form
@@ -166,15 +172,29 @@ function nameWeeklyFolder(mondayDate) {
   targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
 }
 
+function getCycleWeekNum(strCycleWeek) {
+  Logger.log(strCycleWeek);
+  strCycleWeek = String(strCycleWeek);
+  Logger.log(strCycleWeek);
+  Logger.log(typeof(strCycleWeek));
+  for (var i = 1; i < 5; i++) {
+    // if strCycleWeek includes i, then return i
+    if (strCycleWeek.indexOf(i) > -1) {
+      return i;
+    }
+  }
+}
+
 function createSubFolder(parentFolderID, childFolderName) {
   var folder = DriveApp.getFolderById(parentFolderID);
   var newFolder = folder.createFolder(childFolderName);
   return newFolder;
 }
 
-function createFolderStructure(){
-  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id
-  var WEEK_FOLDER_NAME = "EXAMPLE WEEKLY FOLDERS: 2019 05 27 - w1"; // Call function to name Folder for whole week
+function createFolderStructure(mondayDate, cycleWeek){
+  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
+  cycleWeek = getCycleWeekNum(cycleWeek);
+  var WEEK_FOLDER_NAME = "EXAMPLE WEEKLY FOLDERS:_" + mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
   var weekFolder = createSubFolder(PARENT_FOLDER_ID, WEEK_FOLDER_NAME);  
   
   var ordersFolders = weekFolder.getFoldersByName("Orders");
