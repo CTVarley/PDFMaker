@@ -64,12 +64,11 @@ function publishWeek() {
       //get the number week in the cycle
       var cellWithCycleWeek = 'E4';
       var strCycleWeek =String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
-      Logger.log(strCycleWeek);
-      // create a folderName with targetDate 
-      createFolderStructure(targetDate, strCycleWeek);
+      // There might be a more elegant way to pass this ID back so that it's clear this function is being called for its side effects:
+      var foldersIds = createFolderStructure(targetDate, strCycleWeek); 
     }
     
-    generatePdf(targetDate); // put stuff in here to save each file to its relevant folder
+    generatePdf(targetDate, foldersIds); // put stuff in here to save each file to its relevant folder
     Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.  Don't worry about it, just click ok :-)")
     
     Utilities.sleep(17000)
@@ -81,7 +80,7 @@ function publishWeek() {
 
 }
 
-function generatePdf(targetDate) {
+function generatePdf(targetDate, foldersIds) {
   
   sheetsToConvert = ["School_Delivery","COLD_Delivery","Prep"]
   
@@ -97,8 +96,9 @@ function generatePdf(targetDate) {
     var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
     var url = ss.getUrl();
     
-    var folderID = "1vnSexVhPkCqJWhi3worsjHF2o28qBWkA"; // Folder id to save in a folder.
-    var folder = DriveApp.getFolderById(folderID);
+    var weekFolderID = foldersIds[4]; // This currently determines what folder it will be saved in. The source of this is the "createFolderStructure" function.
+    // Use sheetsToConvert[i] to determine what folder to save it in
+    var folder = DriveApp.getFolderById(foldersIds[i]);
     
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
@@ -173,10 +173,7 @@ function nameWeeklyFolder(mondayDate) {
 }
 
 function getCycleWeekNum(strCycleWeek) {
-  Logger.log(strCycleWeek);
   strCycleWeek = String(strCycleWeek);
-  Logger.log(strCycleWeek);
-  Logger.log(typeof(strCycleWeek));
   for (var i = 1; i < 5; i++) {
     // if strCycleWeek includes i, then return i
     if (strCycleWeek.indexOf(i) > -1) {
@@ -185,6 +182,7 @@ function getCycleWeekNum(strCycleWeek) {
   }
 }
 
+// Unnecessary?
 function createSubFolder(parentFolderID, childFolderName) {
   var folder = DriveApp.getFolderById(parentFolderID);
   var newFolder = folder.createFolder(childFolderName);
@@ -193,33 +191,47 @@ function createSubFolder(parentFolderID, childFolderName) {
 
 function createFolderStructure(mondayDate, cycleWeek){
   var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
+  // change to DriveApp.getRootFolder();
   cycleWeek = getCycleWeekNum(cycleWeek);
-  var WEEK_FOLDER_NAME = "EXAMPLE WEEKLY FOLDERS:_" + mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
+  var WEEK_FOLDER_NAME = mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
   var weekFolder = createSubFolder(PARENT_FOLDER_ID, WEEK_FOLDER_NAME);  
+  // Would like to change this array to something more coherent but for now this is a "get it to green" type implementation until we determine what constants can be global configuration.
+  var foldersIds = [];
+  foldersIds[4] = weekFolder.getId();
   
-  var ordersFolders = weekFolder.getFoldersByName("Orders");
-  if(ordersFolders.hasNext()){
-    var ordersFolder = ordersFolders.next()
-  } else {
-    var ordersFolder = weekFolder.createFolder("Orders")
-    }
-    var prepSheetsFolders = weekFolder.getFoldersByName("Prep Sheets");
-  if(prepSheetsFolders.hasNext()){
-    var prepSheets = prepSheets.next()
-  } else {
-    var prepSheets = weekFolder.createFolder("Prep Sheets")
-    }
-    var propelDeliveryFolders = weekFolder.getFoldersByName("Propel Delivery");
-  if(propelDeliveryFolders.hasNext()){
-    var propelDelivery = propelDelivery.next()
-  } else {
-    var propelDelivery = weekFolder.createFolder("Propel Delivery")
-    }
-   var uaecsDeliveryFolders = weekFolder.getFoldersByName("UAECS Delivery");
-  if(uaecsDeliveryFolders.hasNext()){
-    var uaecsDelivery = uaecsDelivery.next()
-  } else {
-    var uaecsDelivery = weekFolder.createFolder("UAECS Delivery") 
-  
+  var CHILD_FOLDER_NAMES = ['UAECS_Delivery', 'Propel_Delivery', 'Prep_Sheets', 'Orders']
+  for (var i = 0; i < CHILD_FOLDER_NAMES.length; i++) {
+    var newFolderName = CHILD_FOLDER_NAMES[i];
+    var newFolder = weekFolder.getFoldersByName(newFolderName);
+    newFolder = newFolder.hasNext() ? newFolder.next() : weekFolder.createFolder(newFolderName);
+    foldersIds[i] = newFolder.getId();
   }
+  
+//  var ordersFolders = weekFolder.getFoldersByName("Orders");
+//  if(ordersFolders.hasNext()){
+//    var ordersFolder = ordersFolders.next()
+//  } else {
+//    var ordersFolder = weekFolder.createFolder("Orders")
+//    }
+//    var prepSheetsFolders = weekFolder.getFoldersByName("Prep Sheets");
+//  if(prepSheetsFolders.hasNext()){
+//    var prepSheets = prepSheets.next()
+//  } else {
+//    var prepSheets = weekFolder.createFolder("Prep Sheets")
+//    }
+//    var propelDeliveryFolders = weekFolder.getFoldersByName("Propel Delivery");
+//  if(propelDeliveryFolders.hasNext()){
+//    var propelDelivery = propelDelivery.next()
+//  } else {
+//    var propelDelivery = weekFolder.createFolder("Propel Delivery")
+//    }
+//   var uaecsDeliveryFolders = weekFolder.getFoldersByName("UAECS Delivery");
+//  if(uaecsDeliveryFolders.hasNext()){
+//    var uaecsDelivery = uaecsDelivery.next()
+//  } else {
+//    var uaecsDelivery = weekFolder.createFolder("UAECS Delivery") 
+//  
+//  }
+  
+  return foldersIds;
 }
