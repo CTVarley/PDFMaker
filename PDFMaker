@@ -41,6 +41,7 @@ function publishDay(day) {
   // TODO: function out redundancies between publishDay and publishWeek  
   
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
   SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
   var sheetWithDate = SpreadsheetApp.getActiveSheet();
   sheetWithDate.getRange('E2').setValue(day);
@@ -48,10 +49,8 @@ function publishDay(day) {
   targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");  
   sheetWithDate.getRange('E2').setValue('Monday');
   var mondayDate = sheetWithDate.getRange('E3').getValue();
-  mondayDate = Utilities.formatDate(mondayDate, 'GMT', 'yyyy-MM-dd-EEEE');
+  mondayDate = Utilities.formatDate(mondayDate, 'GMT', 'yyyy-MM-dd');
   var foldersIds = findTargetFolders(day, mondayDate, sheetWithDate);
-  Logger.log('Made it this far!');
-  Logger.log(foldersIds);
   generatePdf(targetDate, foldersIds);
 }
 
@@ -71,12 +70,13 @@ function publishWeek() {
     var sheetWithDate = SpreadsheetApp.getActiveSheet();
     sheetWithDate.getRange('E2').setValue(days[i]);
     var targetDate = sheetWithDate.getRange("E3").getValue();
+    var mondayDate = Utilities.formatDate(targetDate, 'GMT', 'yyyy-MM-dd');
     targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
     if (days[i] == "Monday") {
       var cellWithCycleWeek = 'E4';
       var strCycleWeek = String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
       // There might be a more elegant way to pass this ID back so that it's clear this function is being called for its side effects:
-      var foldersIds = createFolderStructure(targetDate, strCycleWeek); 
+      var foldersIds = createFolderStructure(mondayDate, strCycleWeek); 
     }
     
     generatePdf(targetDate, foldersIds);
@@ -109,6 +109,11 @@ function generatePdf(targetDate, foldersIds) {
     var weekFolderID = foldersIds[4]; // The source of this is the "createFolderStructure" function.
     var folder = DriveApp.getFolderById(foldersIds[i]);
     
+    // WIP:
+    var fileName = nameFile(targetDate, sheetName);
+    var oldFile = folder.getFilesByName(fileName);
+    fileName = oldFile.hasNext() ? fileName + ' UPDATED ' + Utilities.formatDate(new Date(), 'MM-dd-h:mm') : fileName;
+    
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
     
@@ -127,7 +132,10 @@ function generatePdf(targetDate, foldersIds) {
     
     var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
     
-    var blob = response.getBlob().setName(nameFile(targetDate, sheetName));
+    //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);
+
+    
+    var blob = response.getBlob().setName(fileName);
     
     var newFile = folder.createFile(blob);
   }
@@ -194,6 +202,7 @@ function createFolderStructure(mondayDate, cycleWeek){
     var newFolder = weekFolder.getFoldersByName(newFolderName);
     newFolder = newFolder.hasNext() ? newFolder.next() : weekFolder.createFolder(newFolderName);
     foldersIds[i] = newFolder.getId();
+    Logger.log(CHILD_FOLDER_NAMES[i] + foldersIds[i]);
   }
   
   return foldersIds;
