@@ -10,7 +10,6 @@ function onOpen(){
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('PDF Maker')
  .addItem('Generate PDFs for Week','publishWeek')
- .addItem('Single Day', 'publishDay')
  .addSeparator()
  .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
                   .addItem('Monday', 'Monday')
@@ -52,6 +51,7 @@ function publishDay(day) {
   mondayDate = Utilities.formatDate(mondayDate, 'GMT', 'yyyy-MM-dd');
   var foldersIds = findTargetFolders(day, mondayDate, sheetWithDate);
   generatePdf(targetDate, foldersIds);
+  saveSnapshot(spreadsheet, foldersIds[4]);
 }
 
 // finding target folder IDs for exporting one day at a time
@@ -84,10 +84,12 @@ function publishWeek() {
     Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.");
     Utilities.sleep(17000);
   }
-  
+  saveSnapshot(spreadsheet, foldersIds[4])
   // TODO: function that saves a version of the whole file still in sheet form
   Browser.msgBox("All done! You can find your files in the target folders.");    
 }
+
+
 
 function generatePdf(targetDate, foldersIds) {
   
@@ -186,9 +188,16 @@ function createSubFolder(parentFolderID, childFolderName) {
   return newFolder;
 }
 
+function saveSnapshot(spreadsheet, folderID){ 
+  var destFolder = DriveApp.getFolderById(folderID); 
+  var fileName = "Snapshot generated on " + Utilities.formatDate(new Date(), "GMT-4", "yyyy.MM.dd, h:mm a")
+  DriveApp.getFileById(spreadsheet.getId()).makeCopy(fileName, destFolder); 
+}
+
+
 function createFolderStructure(mondayDate, cycleWeek){
   // change to DriveApp.getRootFolder()?
-  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
+  var PARENT_FOLDER_ID = '1ZMGFHmIxDdV7pWiFevDvcIIrJNsc2S_3'; // Change this to desired parent folder id-- move to config block
   cycleWeek = getCycleWeekNum(cycleWeek);
   var weekFolderName = mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
   var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  
@@ -204,6 +213,5 @@ function createFolderStructure(mondayDate, cycleWeek){
     foldersIds[i] = newFolder.getId();
     Logger.log(CHILD_FOLDER_NAMES[i] + foldersIds[i]);
   }
-  
   return foldersIds;
 }
