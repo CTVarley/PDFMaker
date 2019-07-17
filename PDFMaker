@@ -1,10 +1,10 @@
 // CAN DO: 
-// When exporting PDF for a single day, delete original file first (and/or amend filename)
+// Implement pagination one way or another
 // Refactor redundant code
-// Change constants to be globally scoped at top of file for ease of configuration
-//  This has to make fewer request in hope of not either
+// Make fewer request in hope of not either
 //  - Going over time, or
 //  - Making too many requests
+// Publish !!!!
 
 function onOpen(){
   var ui = SpreadsheetApp.getUi();
@@ -93,7 +93,9 @@ function publishWeek() {
 
 function generatePdf(targetDate, foldersIds) {
   
-  sheetsToConvert = ["School_Delivery", "COLD_Delivery", "Prep"]
+  var sheetsToConvert = ["School_Delivery", "COLD_Delivery", "Prep"];
+  var sheetNames = ['UAECS_Delivery', 'Propel_Delivery', 'Prep'];
+
   
   for (var i = 0; i < sheetsToConvert.length; i++) {
     
@@ -101,7 +103,7 @@ function generatePdf(targetDate, foldersIds) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     SpreadsheetApp.setActiveSheet(ss.getSheetByName(sheetsToConvert[i]));
     var sheet = ss.getActiveSheet();
-    var sheetName = sheet.getName();
+    var sheetName = sheetNames[i];
     
     //Date set with format in EST (NYC) used in subject and PDF name 
     var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
@@ -111,10 +113,7 @@ function generatePdf(targetDate, foldersIds) {
     var weekFolderID = foldersIds[4]; // The source of this is the "createFolderStructure" function.
     var folder = DriveApp.getFolderById(foldersIds[i]);
     
-    // WIP:
-    var fileName = nameFile(targetDate, sheetName);
-    var oldFile = folder.getFilesByName(fileName);
-    fileName = oldFile.hasNext() ? fileName + ' UPDATED ' + Utilities.formatDate(new Date(), 'MM-dd-h:mm') : fileName;
+    var fileName = nameFile(targetDate, sheetName, folder);    
     
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
@@ -164,8 +163,10 @@ function findBreakRows() {
   return rowsBeforeBreaks;
 }
 
-function nameFile(targetDate, sheetName) {
-  var fileName = targetDate + "_" + sheetName + ".pdf";  
+function nameFile(targetDate, sheetName, folder) {
+  var fileName = targetDate + "_" + sheetName;  
+  var oldFile = folder.getFilesByName(fileName);
+  fileName = oldFile.hasNext() ? fileName + '_UPDATED_' + Utilities.formatDate(new Date(), localTimeZone(), 'MM-dd-hh:mm') : fileName;
   Logger.log('Exporting ' + fileName + '...');
   return fileName;  
 }
@@ -190,22 +191,22 @@ function createSubFolder(parentFolderID, childFolderName) {
 
 function saveSnapshot(spreadsheet, folderID){ 
   var destFolder = DriveApp.getFolderById(folderID); 
-  var fileName = "Snapshot generated on " + Utilities.formatDate(new Date(), "GMT-4", "yyyy.MM.dd, h:mm a")
+  var fileName = "Snapshot generated on " + Utilities.formatDate(new Date(), localTimeZone(), "yyyy.MM.dd, h:mm a")
   DriveApp.getFileById(spreadsheet.getId()).makeCopy(fileName, destFolder); 
 }
 
 
 function createFolderStructure(mondayDate, cycleWeek){
   // change to DriveApp.getRootFolder()?
-  var PARENT_FOLDER_ID = '1ZMGFHmIxDdV7pWiFevDvcIIrJNsc2S_3'; // Change this to desired parent folder id-- move to config block
+  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
   cycleWeek = getCycleWeekNum(cycleWeek);
-  var weekFolderName = mondayDate + "_-_w" + cycleWeek; // Call function to name Folder for whole week
+  var weekFolderName = mondayDate + "_w" + cycleWeek; // Call function to name Folder for whole week
   var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  
   // Would like to change this array to something more coherent but for now this is a "get it to green" type implementation until we determine what constants can be global configuration.
   var foldersIds = [];
   foldersIds[4] = weekFolder.getId();
   
-  var CHILD_FOLDER_NAMES = ['UAECS_Delivery', 'Propel_Delivery', 'Prep_Sheets', 'Orders']
+  var CHILD_FOLDER_NAMES = ['UAECS_Delivery', 'Propel_Delivery', 'Prep_Sheets', 'Orders'];
   for (var i = 0; i < CHILD_FOLDER_NAMES.length; i++) {
     var newFolderName = CHILD_FOLDER_NAMES[i];
     var newFolder = weekFolder.getFoldersByName(newFolderName);
@@ -214,4 +215,9 @@ function createFolderStructure(mondayDate, cycleWeek){
     Logger.log(CHILD_FOLDER_NAMES[i] + foldersIds[i]);
   }
   return foldersIds;
+}
+
+function localTimeZone() { 
+  var localTimeOffset = (new Date()).getTimezoneOffset() / 60;
+  return "GMT-" + localTimeOffset;
 }
