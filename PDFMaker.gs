@@ -8,10 +8,10 @@
 
 function onOpen(){
   var ui = SpreadsheetApp.getUi();
-  ui.createMenu('PDF Maker')
- .addItem('Generate PDFs for Week','publishWeek')
+  ui.createMenu('PDF Publisher')
+ .addItem('Publish Week','publishWeek')
  .addSeparator()
- .addSubMenu(SpreadsheetApp.getUi().createMenu('Single Day')
+ .addSubMenu(SpreadsheetApp.getUi().createMenu('Publish Day')
                   .addItem('Monday', 'Monday')
                   .addItem('Tuesday', 'Tuesday')
                   .addItem('Wednesday', 'Wednesday')
@@ -118,27 +118,71 @@ function generatePdf(targetDate, foldersIds) {
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
     
-    //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
-    var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
-    //below parameters are optional...
-    '&size=letter' + //paper size
-      '&portrait=false' + //orientation, false for landscape
-        '&fitw=true' + //fit to width, false for actual size
-        '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
-        '&gridlines=false' + //hide gridlines
-        '&fzr=false' + //do not repeat row headers (frozen rows) on each page
-        '&gid=' + sheet.getSheetId(); //the sheet's Id
+    // An if statement: if this is the Prep sheet
+    // a loop: save a file for each of three ranges / names
     
-    var token = ScriptApp.getOAuthToken();
-    
-    var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
-    
-    //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);
-
-    
-    var blob = response.getBlob().setName(fileName);
-    
-    var newFile = folder.createFile(blob);
+    if (sheetsToConvert[i] == 'Prep') {
+      var fitWidth = sheetsToConvert[i] == 'Prep' ? 'false' : 'true';
+      var orientVertical = sheetsToConvert[i] == 'Prep' ? 'true' : 'false';
+      var rangeToPrint = '';
+      if (sheetsToConvert[i] == 'Prep') {
+        rangeToPrint = '&r1=0&c1=0&r2=20&c2=14';
+        
+        // EXPORT RANGE OPTIONS FOR PDF
+        //need all the below to export a range
+        //gid=sheetId                must be included. The first sheet will be 0. others will have a uniqe ID
+        //ir=false                   seems to be always false
+        //ic=false                   same as ir
+        //r1=Start Row number - 1        row 1 would be 0 , row 15 wold be 14
+        //c1=Start Column number - 1     column 1 would be 0, column 8 would be 7   
+        //r2=End Row number
+        //c2=End Column number
+      }
+      
+      //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
+      var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
+        //below parameters are optional...
+        '&size=letter' + //paper size
+          '&portrait=false' + //orientation, false for landscape
+            '&fitw=true' + //fit to width, false for actual size
+              rangeToPrint + 
+                '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
+                  '&printnotes=false' +
+                    '&gridlines=false' + //hide gridlines
+                      '&fzr=false' + //do not repeat row headers (frozen rows) on each page
+                        '&gid=' + sheet.getSheetId(); //the sheet's Id
+      
+      var token = ScriptApp.getOAuthToken();  
+      var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
+      //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);    
+      var blob = response.getBlob().setName(fileName);
+      var newFile = folder.createFile(blob);
+    } else {
+      var rangeToPrint = '';
+      
+      //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
+      var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
+        //below parameters are optional...
+        '&size=letter' + //paper size
+          '&portrait=false' + //orientation, false for landscape
+            '&fitw=true' + //fit to width, false for actual size
+              rangeToPrint + 
+                '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
+                  '&printnotes=false' +
+                    '&gridlines=false' + //hide gridlines
+                      '&fzr=false' + //do not repeat row headers (frozen rows) on each page
+                        '&gid=' + sheet.getSheetId(); //the sheet's Id
+      
+      var token = ScriptApp.getOAuthToken();
+      
+      var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
+      
+      //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);      
+      
+      var blob = response.getBlob().setName(fileName);
+      
+      var newFile = folder.createFile(blob);
+    }
   }
 }
 
