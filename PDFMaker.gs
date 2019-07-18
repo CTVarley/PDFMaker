@@ -1,11 +1,3 @@
-// CAN DO: 
-// Implement pagination one way or another
-// Refactor redundant code
-// Make fewer request in hope of not either
-//  - Going over time, or
-//  - Making too many requests
-// Publish !!!!
-
 function onOpen(){
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('PDF Publisher')
@@ -18,6 +10,11 @@ function onOpen(){
                   .addItem('Thursday', 'Thursday')
                   .addItem('Friday', 'Friday'))
  .addToUi();
+}
+
+function sleepLength() {
+  // If you get an Error Number 429, increase this number (in milliseconds):
+  return 38000;
 }
 
 function Monday(){
@@ -82,7 +79,7 @@ function publishWeek() {
     generatePdf(targetDate, foldersIds);
     
     Logger.log("Pausing for 20 seconds, to avoid 429 error while processing the whole week.");
-    Utilities.sleep(40000);
+    Utilities.sleep(sleepLength());
   }
   saveSnapshot(spreadsheet, foldersIds[4])
   // TODO: function that saves a version of the whole file still in sheet form
@@ -106,7 +103,7 @@ function generatePdf(targetDate, foldersIds) {
     var sheetName = sheetNames[i];
     
     //Date set with format in EST (NYC) used in subject and PDF name 
-    var currentDate = "generated on " + Utilities.formatDate(new Datfe(), "GMT+5", "yyyy.MM.dd");
+    var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
     Logger.log(currentDate);
     var url = ss.getUrl();
     
@@ -122,7 +119,7 @@ function generatePdf(targetDate, foldersIds) {
     // a loop: save a file for each of three ranges / names
     
     if (sheetsToConvert[i] == 'Prep') {
-      var rangesToPrint = ['&r1=0&c1=0&r2=20&c2=14', '&r1=0&c1=14&r2=20&c2=24', '&r1=0&c1=24&r2=20&c2=39'];
+      var rangesToPrint = ['&r1=0&c1=0&r2=19&c2=14', '&r1=0&c1=14&r2=19&c2=24', '&r1=0&c1=24&r2=19&c2=39'];
       var prepTableNames = ['Lunch', 'Breakfast', 'Cold'];
 
       for (var i = 0; i < rangesToPrint.length; i++) {
@@ -240,10 +237,13 @@ function saveSnapshot(spreadsheet, folderID){
 
 function createFolderStructure(mondayDate, cycleWeek){    
   // var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // TODO: move to config block
+  var rootFolder = DriveApp.getRootFolder();
+  var parentFolder = createSubFolder(rootFolder.getId(), "Weekly_Sheets");
+  
   
   cycleWeek = getCycleWeekNum(cycleWeek);
   var weekFolderName = mondayDate + "_w" + cycleWeek; // Call function to name Folder for whole week
-  var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  
+  var weekFolder = createSubFolder(parentFolder.getId(), weekFolderName);  
   // Would like to change this array to something more coherent but for now this is a "get it to green" type implementation until we determine what constants can be global configuration.
   var foldersIds = [];
   foldersIds[4] = weekFolder.getId();
