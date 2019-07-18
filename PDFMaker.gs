@@ -81,8 +81,8 @@ function publishWeek() {
     
     generatePdf(targetDate, foldersIds);
     
-    Logger.log("Pausing for 17 seconds, to avoid 429 error while processing the whole week.");
-    Utilities.sleep(17000);
+    Logger.log("Pausing for 20 seconds, to avoid 429 error while processing the whole week.");
+    Utilities.sleep(40000);
   }
   saveSnapshot(spreadsheet, foldersIds[4])
   // TODO: function that saves a version of the whole file still in sheet form
@@ -106,14 +106,14 @@ function generatePdf(targetDate, foldersIds) {
     var sheetName = sheetNames[i];
     
     //Date set with format in EST (NYC) used in subject and PDF name 
-    var currentDate = "generated on " + Utilities.formatDate(new Date(), "GMT+5", "yyyy.MM.dd");
+    var currentDate = "generated on " + Utilities.formatDate(new Datfe(), "GMT+5", "yyyy.MM.dd");
     Logger.log(currentDate);
     var url = ss.getUrl();
     
     var weekFolderID = foldersIds[4]; // The source of this is the "createFolderStructure" function.
     var folder = DriveApp.getFolderById(foldersIds[i]);
     
-    var fileName = nameFile(targetDate, sheetName, folder);    
+    
     
     //remove the trailing 'edit' from the url
     url = url.replace(/edit$/, '');
@@ -122,44 +122,46 @@ function generatePdf(targetDate, foldersIds) {
     // a loop: save a file for each of three ranges / names
     
     if (sheetsToConvert[i] == 'Prep') {
-      var fitWidth = sheetsToConvert[i] == 'Prep' ? 'false' : 'true';
-      var orientVertical = sheetsToConvert[i] == 'Prep' ? 'true' : 'false';
-      var rangeToPrint = '';
-      if (sheetsToConvert[i] == 'Prep') {
-        rangeToPrint = '&r1=0&c1=0&r2=20&c2=14';
+      var rangesToPrint = ['&r1=0&c1=0&r2=20&c2=14', '&r1=0&c1=14&r2=20&c2=24', '&r1=0&c1=24&r2=20&c2=39'];
+      var prepTableNames = ['Lunch', 'Breakfast', 'Cold'];
+
+      for (var i = 0; i < rangesToPrint.length; i++) {
+        var fileName = nameFile(targetDate, (sheetName + '_' + (i + 1) + '_' + prepTableNames[i]), folder);
+        //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
+        var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
+          //below parameters are optional...
+          '&size=letter' + //paper size
+            '&portrait=false' + //orientation, false for landscape
+              '&fitw=true' + //fit to width, false for actual size
+                '&fith=true' + 
+                  rangesToPrint[i] + 
+                    '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
+                      '&printnotes=false' +
+                        '&gridlines=false' + //hide gridlines
+                          '&fzr=false' + //do not repeat row headers (frozen rows) on each page
+                            '&gid=' + sheet.getSheetId(); //the sheet's Id
         
-        // EXPORT RANGE OPTIONS FOR PDF
-        //need all the below to export a range
-        //gid=sheetId                must be included. The first sheet will be 0. others will have a uniqe ID
-        //ir=false                   seems to be always false
-        //ic=false                   same as ir
-        //r1=Start Row number - 1        row 1 would be 0 , row 15 wold be 14
-        //c1=Start Column number - 1     column 1 would be 0, column 8 would be 7   
-        //r2=End Row number
-        //c2=End Column number
+        var token = ScriptApp.getOAuthToken();  
+        var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
+        //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);    
+        var blob = response.getBlob().setName(fileName);
+        var newFile = folder.createFile(blob);
       }
+        
+      // EXPORT RANGE OPTIONS FOR PDF
+      //need all the below to export a range
+      //gid=sheetId                must be included. The first sheet will be 0. others will have a uniqe ID
+      //ir=false                   seems to be always false
+      //ic=false                   same as ir
+      //r1=Start Row number - 1        row 1 would be 0 , row 15 wold be 14
+      //c1=Start Column number - 1     column 1 would be 0, column 8 would be 7   
+      //r2=End Row number
+      //c2=End Column number
       
-      //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
-      var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
-        //below parameters are optional...
-        '&size=letter' + //paper size
-          '&portrait=false' + //orientation, false for landscape
-            '&fitw=true' + //fit to width, false for actual size
-              rangeToPrint + 
-                '&sheetnames=true&printtitle=true&pagenumbers=true' + //hide optional headers and footers
-                  '&printnotes=false' +
-                    '&gridlines=false' + //hide gridlines
-                      '&fzr=false' + //do not repeat row headers (frozen rows) on each page
-                        '&gid=' + sheet.getSheetId(); //the sheet's Id
       
-      var token = ScriptApp.getOAuthToken();  
-      var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
-      //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);    
-      var blob = response.getBlob().setName(fileName);
-      var newFile = folder.createFile(blob);
     } else {
+      var fileName = nameFile(targetDate, sheetName, folder);
       var rangeToPrint = '';
-      
       //additional parameters for exporting the sheet as a pdf (if this block has an outside source, can we credit it?)
       var url_ext = 'export?exportFormat=pdf&format=pdf' + //export as pdf
         //below parameters are optional...
@@ -173,20 +175,16 @@ function generatePdf(targetDate, foldersIds) {
                       '&fzr=false' + //do not repeat row headers (frozen rows) on each page
                         '&gid=' + sheet.getSheetId(); //the sheet's Id
       
-      var token = ScriptApp.getOAuthToken();
-      
-      var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}});
-      
-      //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);      
-      
+      var token = ScriptApp.getOAuthToken(); 
+      var response = UrlFetchApp.fetch(url + url_ext, {headers: {'Authorization': 'Bearer ' + token}}); 
+      //newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);
       var blob = response.getBlob().setName(fileName);
-      
       var newFile = folder.createFile(blob);
     }
   }
 }
 
-
+// Deprecated
 function findBreakRows() {
   sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("School_Delivery");
   value = "Signature:";
@@ -240,9 +238,9 @@ function saveSnapshot(spreadsheet, folderID){
 }
 
 
-function createFolderStructure(mondayDate, cycleWeek){
-  // change to DriveApp.getRootFolder()?
-  var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // Change this to desired parent folder id-- move to config block
+function createFolderStructure(mondayDate, cycleWeek){    
+  // var PARENT_FOLDER_ID = '1vnSexVhPkCqJWhi3worsjHF2o28qBWkA'; // TODO: move to config block
+  
   cycleWeek = getCycleWeekNum(cycleWeek);
   var weekFolderName = mondayDate + "_w" + cycleWeek; // Call function to name Folder for whole week
   var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  

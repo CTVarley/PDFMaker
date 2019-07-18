@@ -10,6 +10,7 @@ This script currently expects the following information to exist in a specific c
   - A sheet named School_Delivery, a sheet named COLD_Delivery, and a sheet named Prep
   - The day of the week in cell E2 of a sheet named School_Delivery
   - The date in cell E3 of a sheet named School_Delivery
+  - The number of the week in the cycle included in cell E4 of a sheet named School_Delivery, without any other numbers.
   - The tables in the Prep_Sheet to maintain their specific width in columns
 
 If any of your own changes to the spreadsheet effect the pagination of the School_Delivery or COLD_Delivery sheets, just adjust the height of the blank row between pages.
