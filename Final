@@ -1,0 +1,319 @@
+// Correctly creates the desired folder structure and exports sheets as pdfs.  If the file already exists in the folder, the filename will
+//   be changed by adding the word UPDATED and the date and time that the update occurred.
+
+
+function onOpen(){
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('PDF MAKER')
+  .addItem('Publish Week','publishWeek')
+  .addSeparator()
+  .addSubMenu(SpreadsheetApp.getUi().createMenu('Publish Day')
+              .addItem('Monday', 'Monday')
+              .addItem('Tuesday', 'Tuesday')
+              .addItem('Wednesday', 'Wednesday')
+              .addItem('Thursday', 'Thursday')
+              .addItem('Friday', 'Friday'))
+  .addToUi(); 
+
+
+function Monday(){
+  publishDay("Monday");
+}
+function Tuesday(){
+  publishDay("Tuesday");
+}
+function Wednesday(){
+  publishDay("Wednesday");
+}
+function Thursday(){
+  publishDay("Thursday");
+}
+function Friday(){
+  publishDay("Friday");
+}
+
+
+function savePDFs(foldersIds) {
+  // foldersIDs is the array of folders for each sheet to be saved into
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var url = ss.getUrl().replace(/edit$/,'');
+  var sheets = ["School_Delivery","COLD_Delivery","Prep_"];
+  var sheetNames = ['UAECS Delivery', 'Propel Delivery', 'Prep'];
+  var weekFolderID = foldersIds[4]; // The source of this is the "createFolderStructure" function.
+  
+  for (var i=0; i<sheets.length; i++) {
+    var tempname = sheets[i];
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    SpreadsheetApp.setActiveSheet(sheet.getSheetByName(tempname));
+    var folder = DriveApp.getFolderById(foldersIds[i]);
+    var sheetName = sheetNames[i];
+    
+    // these two variables are used to define the data range in school and cold prep pdfs
+    var rws = ss.getRange('R1:R2').getValues();
+    var cols = ss.getRange('R3:R4').getValues();
+    
+    // these three are used to pull the date from the worksheet to incorporate into the file name
+    var sheetforfilename = ss.getActiveSheet();
+  
+    // school_delivery and cold_delevery have the date in cell e3, prep_ has the date in cell e2,
+    // therefore this if/else statement is used to determine which sheet we are currently processing
+    // and chooses the correct cell to be used accordingly
+    
+    if (i < sheets.length - 1 ) {
+      var dateforfilename = sheet.getRange('E3').getValue();
+      var dateforfilename2 = Utilities.formatDate(dateforfilename, "GMT - 5", "yyyy MM dd");
+      var dayforfilename = sheet.getRange('E2').getValue();
+      var fileName = nameFile(dateforfilename2, " " + dayforfilename + " "+sheetName, folder);
+    } 
+      else {
+        var dateforfilename = sheet.getRange('E2').getValue();
+        var dateforfilename2 = Utilities.formatDate(dateforfilename, "GMT - 5", "yyyy MM dd");
+        var fileName = nameFile(dateforfilename2, (" " + dayforfilename + " " + sheetName), folder);
+    }
+  
+    // Now we need to build the url that will be used when we export the PDFs.  The values will differ
+    // depending on which sheet is being saved. School and Cold Delivery will use the "if", and the Prep
+    // sheet will use the "else" 
+    
+    if (i < 2) { 
+      var url_ext = 'export?exportFormat=pdf&format=pdf'   //export as pdf
+      
+      + '&gid='+sheet.getSheetId()   //the sheet's Id
+      + '&size=letter'      // paper size
+      + '&portrait=false'    // orientation, false for landscape
+      + '&sheetnames=false'  // supress printing of the sheetname
+      + '&printtitle=true&pagenumbers=false'  // includes a title in the pdf
+      + '&gridlines=false'  // hide gridlines
+      + '&printnotes=false'  // suppresses the inclusion of any note fields which would cause extraneous pages
+      + '&scale=2'           // causes the pdf to scale to the width of the page
+      + '&fitw=true'         // forces the output to fit the width of the page
+      + '&fith=true'         // forces the output to fit the height of the page
+      + '&fzr=true' 
+      + '&ir=false'
+      + '&ic=false'
+      + '&top_margin= 1.00'   // margin settings
+      + '&bottom_margin= 0.60'
+      + '&left_margin=0.50'
+      + '&right_margin=0.50'
+      + '&pageorder = 1'      // sets page order as "down then over"
+      + '&r1='+rws[0]         // for School and Cold r1,c1,r2,c2 are the values from column R of the spreadsheet
+      + '&c1='+cols[0]        //        which indicates the starting and ending rows/columns to output into the pdf
+      + '&r2='+rws[1]  
+      + '&c2='+cols[1];
+      
+      Utilities.sleep(5000);  // forces pause in order to not exceed the allowable number of calls to google
+    }
+    
+    // These values will be used for the Kitchen Prep pdf export
+    else {
+      var url_ext = 'export?exportFormat=pdf&format=pdf'   
+      + '&gid='+sheet.getSheetId()    
+      + '&size=letter'      
+      + '&portrait=false'    
+      + '&scale2'  
+      + '&sheetnames=true'
+      + '&printtitle=true'
+      + '&pagenumbers=false' 
+      + '&gridlines=false' 
+      + '&printnotes=false'
+      + '&ir=false'
+      + '&ic=false'
+      + '&top_margin= 1.00'
+      + '&bottom_margin= 1.00'
+      + '&left_margin=0.50'
+      + '&right_margin=0.50'
+      + '&pageorder = 2'
+      + '&r1=1'  
+      + '&c1=0'
+      +'&r2=114'
+      + '&c2=18';
+      
+      Utilities.sleep(5000);
+    }
+    
+    // Required in order to write files
+    var options = {
+      headers: {
+        'Authorization': 'Bearer ' +  ScriptApp.getOAuthToken()
+      }
+    } 
+    
+    var response = UrlFetchApp.fetch(url + url_ext, options);
+    var blob = response.getBlob().setName(fileName + '.pdf');
+    //Write the pdf to file
+    folder.createFile(blob);
+  }
+ } 
+
+
+ // Dummy function for API authorization only.
+ // From: https://stackoverflow.com/a/37172203/1677912 
+function forAuth_() {
+  DriveApp.getFileById("Just for authorization"); // https://code.google.com/p/google-apps-script-issues/issues/detail?id=3579#c36
+}
+
+
+function createPrep() {
+ // This function will pull the info from the Kitchen Prep worksheet into the temporary "Prep_" worksheet
+ // which is then used to create the pdf.  This is necessary due to the pagination issues that would occur
+ // when trying to export a very wide spreadsheet.
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet(); 
+  var source_sheet = ss.getSheetByName("Prep");
+  var target_sheet = ss.getSheetByName("Prep_");
+  var sheet = SpreadsheetApp.getActive().getSheetByName('Prep_');
+  
+  // if there are any values currently in the prep_ sheet, remove them
+  target_sheet.getRange('A1:AA300').clearContent();  
+  
+  var source_range = source_sheet.getRange("A1:N25");
+  var target_range = target_sheet.getRange("A1:N25");
+  
+  source_range.copyTo(target_range, {formatsOnly: true});
+  source_range.copyTo(target_range, {contentsOnly: true}) ;
+  source_range = source_sheet.getRange("P1:X25");
+  target_range = target_sheet.getRange("a50:I75");
+  source_range.copyTo(target_range, {formatsOnly: true});
+  source_range.copyTo(target_range, {contentsOnly: true}) ;
+  source_range = source_sheet.getRange("z2:an14");
+  target_range = target_sheet.getRange("a100:o113");
+  source_range.copyTo(target_range, {formatsOnly: true});
+  source_range.copyTo(target_range, {contentsOnly: true}) ; 
+}
+
+
+function publishWeek() {  
+ options = {muteHttpExceptions: false};  
+ days = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+ for (var i = 0; i < days.length; i++) {    
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("COLD_Delivery")); 
+    var sheetWithDate = SpreadsheetApp.getActiveSheet();
+    sheetWithDate.getRange('E2').setValue(days[i]);
+    
+    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
+    var sheetWithDate2 = SpreadsheetApp.getActiveSheet();
+    sheetWithDate2.getRange('E2').setValue(days[i]);
+    SpreadsheetApp.flush();
+    createPrep();
+    
+    var targetDate = sheetWithDate.getRange("E3").getValue();
+    var mondayDate = Utilities.formatDate(targetDate, 'GMT', 'yyyy-MM-dd');
+    targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");
+    
+    if (days[i] == "Monday") {
+      var cellWithCycleWeek = 'E4';
+      var strCycleWeek = String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
+      var foldersIds = createFolderStructure(mondayDate, strCycleWeek); 
+      saveSnapshot(spreadsheet, foldersIds[4])
+    }
+    savePDFs(foldersIds); 
+    //end of for loop
+  }
+  //end of function
+ }
+
+
+function nameFile(targetDate, sheetName, folder) {
+  var fileName = targetDate + sheetName;  
+  var tempfileName = fileName+'.pdf';
+  var oldFile = folder.getFilesByName(fileName);
+  var files = folder.getFiles();
+  
+  while (files.hasNext()) {
+    var file = files.next();
+    if (file == tempfileName) {
+      fileName = fileName + '_UPDATED_' + Utilities.formatDate(new Date(), localTimeZone(), 'MM-dd-hh:mm')
+    } 
+  }
+  return fileName;  
+}
+ 
+
+function getCycleWeekNum(strCycleWeek) {
+  strCycleWeek = String(strCycleWeek);
+  for (var i = 1; i < 5; i++) {
+    if (strCycleWeek.indexOf(i) > -1) {
+      return i;
+    }
+  }
+}
+
+
+function createSubFolder(parentFolderID, childFolderName) {
+  var parentFolder = DriveApp.getFolderById(parentFolderID);
+  var newFolder = parentFolder.getFoldersByName(childFolderName);
+  newFolder = newFolder.hasNext() ? newFolder.next() : parentFolder.createFolder(childFolderName);
+  return newFolder;
+}
+
+
+function saveSnapshot(spreadsheet, folderID){ 
+  var destFolder = DriveApp.getFolderById(folderID); 
+  var fileName = "Snapshot generated on " + Utilities.formatDate(new Date(), localTimeZone(), "yyyy.MM.dd, h:mm a")
+  DriveApp.getFileById(spreadsheet.getId()).makeCopy(fileName, destFolder); 
+}
+
+
+function createFolderStructure(mondayDate, cycleWeek){
+  var PARENT_FOLDER_ID = '13umN3VvncbwsZXQYyE2xUa-2KKNgFhYF'; // Change this to desired parent folder id-- move to config block
+  cycleWeek = getCycleWeekNum(cycleWeek);
+  var weekFolderName = mondayDate + "_w" + cycleWeek; // Call function to name Folder for whole week
+  var weekFolder = createSubFolder(PARENT_FOLDER_ID, weekFolderName);  
+  
+  // Would like to change this array to something more coherent but for now this is a "get it to green" type implementation until we determine what constants can be global configuration.
+  var foldersIds = [];
+  foldersIds[4] = weekFolder.getId();
+  var CHILD_FOLDER_NAMES = ['UAECS_Delivery', 'Propel_Delivery', 'Prep_Sheets', 'Orders'];
+  for (var i = 0; i < CHILD_FOLDER_NAMES.length; i++) {
+    var newFolderName = CHILD_FOLDER_NAMES[i];
+    var newFolder = weekFolder.getFoldersByName(newFolderName);
+    newFolder = newFolder.hasNext() ? newFolder.next() : weekFolder.createFolder(newFolderName);
+    foldersIds[i] = newFolder.getId();
+    Logger.log(CHILD_FOLDER_NAMES[i] + foldersIds[i]);
+  }
+  return foldersIds;
+}
+
+
+function publishDay(day) {  
+  // TODO: function out redundancies between publishDay and publishWeek  
+  
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
+  var sheetWithDate = SpreadsheetApp.getActiveSheet();
+  sheetWithDate.getRange('E2').setValue(day);
+  var targetDate = sheetWithDate.getRange("E3").getValue();
+  targetDate = Utilities.formatDate(targetDate, "GMT", "yyyy-MM-dd-EEEE");  
+  sheetWithDate.getRange('E2').setValue('Monday');
+  var mondayDate = sheetWithDate.getRange('E3').getValue();
+  mondayDate = Utilities.formatDate(mondayDate, 'GMT', 'yyyy-MM-dd');
+  var foldersIds = findTargetFolders(day, mondayDate, sheetWithDate);
+  
+  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("School_Delivery"));
+  var sheetWithDate = SpreadsheetApp.getActiveSheet();
+  sheetWithDate.getRange('E2').setValue(day);
+  SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName("COLD_Delivery"));
+  var sheetWithDate2 = SpreadsheetApp.getActiveSheet();
+  sheetWithDate2.getRange('E2').setValue(day);
+  
+  SpreadsheetApp.flush();
+  createPrep();
+  savePDFs(foldersIds);
+  saveSnapshot(spreadsheet, foldersIds[4]);
+}
+
+
+// finding target folder IDs for exporting one day at a time
+function findTargetFolders(weekday, mondayDate, sheetWithDate) {
+  var cellWithCycleWeek = 'E4';
+  var strCycleWeek = String(sheetWithDate.getRange(cellWithCycleWeek).getDisplayValue());
+  return createFolderStructure(mondayDate, strCycleWeek);
+}
+
+
+function localTimeZone() { 
+  var localTimeOffset = (new Date()).getTimezoneOffset() / 60;
+  return "GMT-" + localTimeOffset;
+}
